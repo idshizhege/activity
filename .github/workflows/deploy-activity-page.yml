@@ -5,7 +5,13 @@ on:
     branches:
       - main
     paths:
-      - 'web/**'
+      - 'src/**'
+      - 'public/**'
+      - 'data/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'vite.config.ts'
+      - 'index.html'
       - '.github/workflows/deploy-activity-page.yml'
   workflow_dispatch:
 
@@ -34,15 +40,13 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: web/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         run: npm ci
-        working-directory: web
 
       - name: Build app
         run: npm run build
-        working-directory: web
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -50,7 +54,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./hermes_cli/web_dist
+          path: ./dist
 
   deploy:
     environment:
