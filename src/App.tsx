@@ -309,8 +309,18 @@ async function saveEventInfo(eventInfo: EventInfo) {
     updated_at: new Date().toISOString(),
   };
 
-  const { error } = await supabase.from("event_info").upsert(payload);
+  const { data, error } = await supabase
+    .from("event_info")
+    .update(payload)
+    .eq("id", 1)
+    .select("id")
+    .maybeSingle<{ id: number }>();
+
   if (error) throw error;
+
+  if (!data) {
+    throw new Error("保存失败：没有找到活动主记录，请在 Supabase 里确认 event_info 表中 id=1 的数据仍然存在。");
+  }
 }
 
 function SetupNotice() {
@@ -377,16 +387,16 @@ export default function App() {
 
   const highlightCards = [
     {
-      title: "更像活动官网",
-      description: "不是普通报名表，而是带展示感的活动落地页，发群里也更有面子。",
+      title: "先把人聚齐",
+      description: "时间、地点、节奏和玩法一次讲清楚，群里不用来回翻消息，也方便大家快速决定来不来。",
     },
     {
-      title: "信息一屏讲清楚",
-      description: "时间、地点、安排、参加情况集中展示，大家不用来回翻聊天记录。",
+      title: "安排更从容",
+      description: "谁能来、谁待定、谁有困难实时可见，方便临时改地点、调时间或顺手拼车约饭。",
     },
     {
-      title: "后台一改全站同步",
-      description: "以后端午、聚餐、露营、生日局，直接进管理页改标题和信息就行。",
+      title: "氛围更到位",
+      description: "不是冷冰冰的报名表，而是一页有气氛、有画面、有期待感的活动邀请。",
     },
   ];
 
@@ -399,20 +409,20 @@ export default function App() {
 
   const galleryImages = [
     {
-      title: "夜景氛围",
-      description: "大图首屏 + 玻璃质感，让活动页更像正式发布页。",
+      title: "傍晚集合，状态刚好",
+      description: "适合下班后直接过来，不必太赶，能吃饭、能聊天，也能把这段时间的近况一次补齐。",
       image:
         "https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=1400&q=80",
     },
     {
-      title: "现场质感",
-      description: "用展示区突出活动亮点，报名页不再只是表格。",
+      title: "吃饭聊天，不只打卡",
+      description: "这次重点不是走流程，而是把熟人重新聚起来，边吃边聊，节奏轻松一点，体验也更自然。",
       image:
         "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1400&q=80",
     },
     {
-      title: "节日气氛",
-      description: "支持后续把五一换成端午、中秋、聚餐、团建等任意活动。",
+      title: "这页以后还能继续用",
+      description: "下次不管是端午、中秋、生日、聚餐还是团建，后台改一下活动信息，这个页面就会自动同步成新活动。",
       image:
         "https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=1400&q=80",
     },
@@ -839,7 +849,7 @@ export default function App() {
             <div className="max-w-3xl">
               <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-1.5 text-xs font-medium tracking-[0.18em] text-cyan-100 uppercase">
                 <Sparkles className="h-3.5 w-3.5" />
-                Holiday Event Landing Page
+                Private Gathering Invitation
               </div>
 
               <h1 className="mt-5 text-4xl font-semibold leading-tight tracking-tight text-white md:text-6xl xl:text-7xl">
@@ -847,7 +857,7 @@ export default function App() {
               </h1>
 
               <p className="mt-5 max-w-2xl text-sm leading-7 text-slate-200 md:text-base">
-                {eventInfo.description || "按实际情况填写是否参加、几点到、几点走和需要协调的事。"}
+                {eventInfo.description || "这次把时间留给见面本身。吃顿饭、聊聊近况、把想见的人重新聚到一张桌上。"}
               </p>
 
               <div className="mt-6 flex flex-wrap gap-3 text-sm">
@@ -900,7 +910,7 @@ export default function App() {
               <div className="rounded-[1.75rem] border border-white/10 bg-slate-950/45 p-5 backdrop-blur-xl">
                 <div className="flex items-center gap-2 text-sm font-medium text-cyan-100">
                   <Gem className="h-4 w-4" />
-                  活动信息总览
+                  今晚安排
                 </div>
                 <div className="mt-4 grid gap-3 text-sm text-slate-200 sm:grid-cols-2">
                   <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
@@ -928,7 +938,7 @@ export default function App() {
             <section className="rounded-[2rem] border border-white/10 bg-white/5 p-5 shadow-[0_30px_120px_rgba(0,0,0,0.35)] backdrop-blur-xl md:p-6">
               <div className="flex items-center gap-2 text-sm font-medium text-cyan-100">
                 <Sparkles className="h-4 w-4" />
-                这次活动为什么值得来
+                这次聚会值得来
               </div>
               <div className="mt-5 grid gap-4 md:grid-cols-3">
                 {highlightCards.map((item) => (
@@ -958,8 +968,8 @@ export default function App() {
             <section className="rounded-[2rem] border border-white/10 bg-white/5 p-5 shadow-[0_30px_120px_rgba(0,0,0,0.35)] backdrop-blur-xl md:p-6">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-xl font-semibold text-white">视觉展示区</h2>
-                  <p className="mt-2 text-sm text-slate-300">我先给你做成偏高端发布页的感觉，后面还可以继续强化。</p>
+                  <h2 className="text-xl font-semibold text-white">氛围预览</h2>
+                  <p className="mt-2 text-sm text-slate-300">先感受一下这次聚会的节奏：轻松、好看、适合见面，也适合认真聊聊。</p>
                 </div>
               </div>
               <div className="mt-5 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
@@ -1059,11 +1069,11 @@ export default function App() {
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <h2 className="text-xl font-semibold text-white">活动总览</h2>
-                  <p className="mt-2 text-sm text-slate-300">适合直接发群里，大家能实时看到整体情况。</p>
+                  <p className="mt-2 text-sm text-slate-300">发到群里以后，大家一眼就能看懂时间、地点和目前报名情况。</p>
                 </div>
                 <button className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-200 transition hover:bg-white/10" onClick={() => void handleCopyShareText()} type="button">
                   <Copy className="h-3.5 w-3.5" />
-                  {copied ? "已复制" : "复制群发文案"}
+                  {copied ? "已复制" : "复制邀请文案"}
                 </button>
               </div>
 
@@ -1087,7 +1097,7 @@ export default function App() {
                 <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">总报名：{participants.length}</span>
                 <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">待协调：{stats.blockers.length}</span>
                 <a className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-cyan-100 transition hover:bg-cyan-400/15" href={getAdminUrl()}>
-                  管理编辑入口
+                  修改活动信息
                 </a>
               </div>
             </section>

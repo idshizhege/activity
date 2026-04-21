@@ -64,3 +64,8 @@ on public.event_info
 for update
 using (auth.role() = 'authenticated')
 with check (auth.role() = 'authenticated');
+
+create policy "authenticated insert event info"
+on public.event_info
+for insert
+with check (auth.role() = 'authenticated');
