@@ -69,3 +69,8 @@ create policy "authenticated insert event info"
 on public.event_info
 for insert
 with check (auth.role() = 'authenticated');
+
+create policy "authenticated delete participants"
+on public.participants
+for delete
+using (auth.role() = 'authenticated');

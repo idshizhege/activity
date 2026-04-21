@@ -69,4 +69,6 @@ git push origin main
 - GitHub Pages 只托管前端页面；数据实际保存在 Supabase。
 - 这个版本不再依赖 `web/server.mjs`。
 - 当前 `participants` 更新策略为了简单开放了匿名更新，更适合小范围熟人群活动，不适合高安全场景。
+- 如果你是基于旧版项目升级，记得在 Supabase SQL Editor 再执行一次最新的 `supabase-schema.sql`，至少要补上 `authenticated delete participants` 这条 policy，不然管理员后台的“删除报名”和“清空全部报名”会提示没有权限。
+- 现在管理员后台支持三类操作：修改活动信息、编辑/删除单条报名、开始新活动时一键清空旧报名。
 - 如果后续你要更安全，我可以继续帮你改成 `Supabase Auth + 更严格 RLS` 或 `Edge Functions` 版本。

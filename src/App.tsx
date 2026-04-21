@@ -6,15 +6,18 @@ import {
   CalendarDays,
   CheckCircle2,
   Copy,
+  Eraser,
   Gem,
   LoaderCircle,
   LockKeyhole,
   LogIn,
   LogOut,
+  Pencil,
   PartyPopper,
   RefreshCcw,
   ShieldCheck,
   Sparkles,
+  Trash2,
   Users,
   XCircle,
 } from "lucide-react";
@@ -323,6 +326,66 @@ async function saveEventInfo(eventInfo: EventInfo) {
   }
 }
 
+function participantToDraft(participant: Participant): DraftParticipant {
+  return {
+    name: participant.name,
+    status: participant.status,
+    eta: participant.eta,
+    leaveAt: participant.leaveAt,
+    obstacle: participant.obstacle,
+    note: participant.note,
+  };
+}
+
+async function updateParticipantRecord(participantId: number, draft: DraftParticipant) {
+  if (!supabase) {
+    throw new Error("Supabase 尚未配置");
+  }
+
+  const payload = {
+    name: draft.name.trim(),
+    status: draft.status,
+    eta: draft.eta.trim(),
+    leave_at: draft.leaveAt.trim(),
+    obstacle: draft.obstacle.trim(),
+    note: draft.note.trim(),
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data, error } = await supabase
+    .from("participants")
+    .update(payload)
+    .eq("id", participantId)
+    .select("id")
+    .maybeSingle<{ id: number }>();
+
+  if (error) throw error;
+
+  if (!data) {
+    throw new Error("保存失败：没有找到这条报名记录。");
+  }
+}
+
+async function deleteParticipantRecord(participantId: number) {
+  if (!supabase) {
+    throw new Error("Supabase 尚未配置");
+  }
+
+  const { error } = await supabase.from("participants").delete().eq("id", participantId);
+
+  if (error) throw error;
+}
+
+async function clearAllParticipants() {
+  if (!supabase) {
+    throw new Error("Supabase 尚未配置");
+  }
+
+  const { error } = await supabase.from("participants").delete().gt("id", 0);
+
+  if (error) throw error;
+}
+
 function SetupNotice() {
   return (
     <div className="mx-auto flex min-h-screen max-w-3xl items-center px-4 py-10">
@@ -358,6 +421,9 @@ export default function App() {
   const [refreshing, setRefreshing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [adminSaving, setAdminSaving] = useState(false);
+  const [editingParticipantId, setEditingParticipantId] = useState<number | null>(null);
+  const [adminParticipantDraft, setAdminParticipantDraft] = useState<DraftParticipant>(emptyDraft);
+  const [adminParticipantSaving, setAdminParticipantSaving] = useState<number | "all" | null>(null);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
   const [adminLogin, setAdminLogin] = useState({ email: adminEmail, password: "" });
@@ -592,6 +658,95 @@ export default function App() {
     }
   };
 
+  const handleEditParticipant = (participant: Participant) => {
+    setEditingParticipantId(participant.id);
+    setAdminParticipantDraft(participantToDraft(participant));
+    setError("");
+  };
+
+  const handleCancelParticipantEdit = () => {
+    setEditingParticipantId(null);
+    setAdminParticipantDraft(emptyDraft);
+  };
+
+  const handleAdminParticipantSave = async (participantId: number) => {
+    if (!isAdminAuthorized) {
+      setError("请先使用管理员账号登录。");
+      return;
+    }
+
+    if (!adminParticipantDraft.name.trim()) {
+      setError("报名人姓名不能为空。");
+      return;
+    }
+
+    setAdminParticipantSaving(participantId);
+    try {
+      await updateParticipantRecord(participantId, adminParticipantDraft);
+      await refreshActivity(true);
+      setEditingParticipantId(null);
+      setAdminParticipantDraft(emptyDraft);
+      setError("");
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "保存报名记录失败");
+    } finally {
+      setAdminParticipantSaving(null);
+    }
+  };
+
+  const handleDeleteParticipant = async (participant: Participant) => {
+    if (!isAdminAuthorized) {
+      setError("请先使用管理员账号登录。");
+      return;
+    }
+
+    if (typeof window !== "undefined") {
+      const confirmed = window.confirm(`确定删除 ${participant.name} 这条报名记录吗？`);
+      if (!confirmed) return;
+    }
+
+    setAdminParticipantSaving(participant.id);
+    try {
+      await deleteParticipantRecord(participant.id);
+      await refreshActivity(true);
+      if (editingParticipantId === participant.id) {
+        setEditingParticipantId(null);
+        setAdminParticipantDraft(emptyDraft);
+      }
+      setError("");
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "删除报名记录失败");
+    } finally {
+      setAdminParticipantSaving(null);
+    }
+  };
+
+  const handleClearAllParticipants = async () => {
+    if (!isAdminAuthorized) {
+      setError("请先使用管理员账号登录。");
+      return;
+    }
+
+    if (typeof window !== "undefined") {
+      const confirmed = window.confirm("确定清空当前所有报名记录吗？这个操作通常用于切换到下一次新活动。");
+      if (!confirmed) return;
+    }
+
+    setAdminParticipantSaving("all");
+    try {
+      await clearAllParticipants();
+      await refreshActivity(true);
+      setEditingParticipantId(null);
+      setAdminParticipantDraft(emptyDraft);
+      setDraft(emptyDraft);
+      setError("");
+    } catch (clearError) {
+      setError(clearError instanceof Error ? clearError.message : "清空报名记录失败");
+    } finally {
+      setAdminParticipantSaving(null);
+    }
+  };
+
   if (!isSupabaseConfigured) {
     return <SetupNotice />;
   }
@@ -778,17 +933,33 @@ export default function App() {
                 </section>
 
                 <section className="rounded-3xl border border-slate-200 bg-white/90 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur md:p-6">
-                  <h2 className="text-lg font-semibold">报名明细</h2>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <h2 className="text-lg font-semibold">报名明细</h2>
+                      <p className="mt-1 text-sm text-slate-500">这里可以直接改某个人的报名内容，或者在切换到新活动时一键清空旧报名。</p>
+                    </div>
+                    <button
+                      className="inline-flex items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+                      disabled={adminParticipantSaving === "all" || !participants.length}
+                      onClick={() => void handleClearAllParticipants()}
+                      type="button"
+                    >
+                      {adminParticipantSaving === "all" ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Eraser className="h-4 w-4" />}
+                      开始新活动：清空全部报名
+                    </button>
+                  </div>
                   <div className="mt-4 space-y-3">
                     {participants.length ? (
                       participants.map((item) => {
                         const meta = statusMeta[item.status];
                         const Icon = meta.icon;
+                        const isEditing = editingParticipantId === item.id;
+                        const isBusy = adminParticipantSaving === item.id;
                         return (
                           <article className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4" key={item.id}>
-                            <div className="flex items-start justify-between gap-3">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                               <div>
-                                <div className="flex items-center gap-2">
+                                <div className="flex flex-wrap items-center gap-2">
                                   <span className="text-base font-medium text-slate-900">{item.name}</span>
                                   <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium ${meta.className}`}>
                                     <Icon className="h-3.5 w-3.5" />
@@ -797,8 +968,87 @@ export default function App() {
                                 </div>
                                 <div className="mt-2 text-xs text-slate-500">更新于 {formatRelativeTime(item.updatedAt)}</div>
                               </div>
+                              <div className="flex flex-wrap gap-2">
+                                <button
+                                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:border-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+                                  disabled={isBusy}
+                                  onClick={() => handleEditParticipant(item)}
+                                  type="button"
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                  编辑
+                                </button>
+                                <button
+                                  className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+                                  disabled={isBusy}
+                                  onClick={() => void handleDeleteParticipant(item)}
+                                  type="button"
+                                >
+                                  {isBusy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                                  删除
+                                </button>
+                              </div>
                             </div>
-                            {(item.eta || item.leaveAt || item.obstacle || item.note) ? (
+                            {isEditing ? (
+                              <div className="mt-4 space-y-4 rounded-2xl border border-indigo-100 bg-white p-4">
+                                <div className="grid gap-3 sm:grid-cols-3">
+                                  {(["yes", "maybe", "no"] as AttendanceStatus[]).map((status) => {
+                                    const optionMeta = statusMeta[status];
+                                    const OptionIcon = optionMeta.icon;
+                                    const active = adminParticipantDraft.status === status;
+                                    return (
+                                      <button
+                                        className={`rounded-2xl border px-4 py-3 text-left text-sm transition ${active ? `${optionMeta.className} shadow-sm` : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"}`}
+                                        key={status}
+                                        onClick={() => setAdminParticipantDraft((current) => ({ ...current, status }))}
+                                        type="button"
+                                      >
+                                        <span className="inline-flex items-center gap-2 font-medium">
+                                          <OptionIcon className="h-4 w-4" />
+                                          {optionMeta.label}
+                                        </span>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                  <label className="block space-y-2 sm:col-span-2">
+                                    <span className="text-sm font-medium text-slate-700">名字</span>
+                                    <input className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100" onChange={(event) => setAdminParticipantDraft((current) => ({ ...current, name: event.target.value }))} value={adminParticipantDraft.name} />
+                                  </label>
+                                  <label className="block space-y-2">
+                                    <span className="text-sm font-medium text-slate-700">预计到达</span>
+                                    <input className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100" onChange={(event) => setAdminParticipantDraft((current) => ({ ...current, eta: event.target.value }))} value={adminParticipantDraft.eta} />
+                                  </label>
+                                  <label className="block space-y-2">
+                                    <span className="text-sm font-medium text-slate-700">预计离开</span>
+                                    <input className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100" onChange={(event) => setAdminParticipantDraft((current) => ({ ...current, leaveAt: event.target.value }))} value={adminParticipantDraft.leaveAt} />
+                                  </label>
+                                  <label className="block space-y-2 sm:col-span-2">
+                                    <span className="text-sm font-medium text-slate-700">困难</span>
+                                    <input className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100" onChange={(event) => setAdminParticipantDraft((current) => ({ ...current, obstacle: event.target.value }))} value={adminParticipantDraft.obstacle} />
+                                  </label>
+                                  <label className="block space-y-2 sm:col-span-2">
+                                    <span className="text-sm font-medium text-slate-700">备注</span>
+                                    <textarea className="min-h-24 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100" onChange={(event) => setAdminParticipantDraft((current) => ({ ...current, note: event.target.value }))} value={adminParticipantDraft.note} />
+                                  </label>
+                                </div>
+                                <div className="flex flex-wrap gap-3">
+                                  <button
+                                    className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                                    disabled={isBusy}
+                                    onClick={() => void handleAdminParticipantSave(item.id)}
+                                    type="button"
+                                  >
+                                    {isBusy ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                                    保存这条报名
+                                  </button>
+                                  <button className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-slate-300" onClick={() => handleCancelParticipantEdit()} type="button">
+                                    取消编辑
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (item.eta || item.leaveAt || item.obstacle || item.note) ? (
                               <div className="mt-3 space-y-2 text-sm text-slate-600">
                                 {item.eta ? <p>预计到达：{item.eta}</p> : null}
                                 {item.leaveAt ? <p>预计离开：{item.leaveAt}</p> : null}
