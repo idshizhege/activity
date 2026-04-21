@@ -83,6 +83,7 @@ type EventInfoRow = {
 
 const TOKEN_KEY = "activity-planner-supabase-token";
 const POLL_INTERVAL = 12000;
+const ARCHIVED_PARTICIPANT_PREFIX = "__archived__:";
 
 const emptyDraft: DraftParticipant = {
   name: "",
@@ -187,6 +188,14 @@ function formatRelativeTime(isoTime: string) {
   return `${days} 天前`;
 }
 
+function isArchivedParticipantName(name: string) {
+  return name.startsWith(ARCHIVED_PARTICIPANT_PREFIX);
+}
+
+function buildArchivedParticipantName(participantId: number) {
+  return `${ARCHIVED_PARTICIPANT_PREFIX}${participantId}`;
+}
+
 function buildShareText(eventInfo: EventInfo, participants: Participant[]) {
   const yes = participants.filter((item) => item.status === "yes");
   const maybe = participants.filter((item) => item.status === "maybe");
@@ -257,7 +266,7 @@ async function loadParticipants() {
     .returns<ParticipantRow[]>();
 
   if (error) throw error;
-  return (data || []).map(mapParticipant);
+  return (data || []).filter((row) => !isArchivedParticipantName(row.name)).map(mapParticipant);
 }
 
 async function loadMySubmission(viewerToken: string) {
@@ -269,7 +278,8 @@ async function loadMySubmission(viewerToken: string) {
     .maybeSingle<ParticipantRow>();
 
   if (error) throw error;
-  return data ? mapParticipant(data) : null;
+  if (!data || isArchivedParticipantName(data.name)) return null;
+  return mapParticipant(data);
 }
 
 async function saveSubmission(viewerToken: string, draft: DraftParticipant) {
@@ -371,9 +381,28 @@ async function deleteParticipantRecord(participantId: number) {
     throw new Error("Supabase 尚未配置");
   }
 
-  const { error } = await supabase.from("participants").delete().eq("id", participantId);
+  const payload = {
+    name: buildArchivedParticipantName(participantId),
+    status: "no" as AttendanceStatus,
+    eta: "",
+    leave_at: "",
+    obstacle: "",
+    note: "",
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data, error } = await supabase
+    .from("participants")
+    .update(payload)
+    .eq("id", participantId)
+    .select("id")
+    .maybeSingle<{ id: number }>();
 
   if (error) throw error;
+
+  if (!data) {
+    throw new Error("删除失败：没有找到这条报名记录。");
+  }
 }
 
 async function clearAllParticipants() {
@@ -381,7 +410,18 @@ async function clearAllParticipants() {
     throw new Error("Supabase 尚未配置");
   }
 
-  const { error } = await supabase.from("participants").delete().gt("id", 0);
+  const { error } = await supabase
+    .from("participants")
+    .update({
+      name: `${ARCHIVED_PARTICIPANT_PREFIX}${Date.now()}`,
+      status: "no",
+      eta: "",
+      leave_at: "",
+      obstacle: "",
+      note: "",
+      updated_at: new Date().toISOString(),
+    })
+    .not("name", "like", `${ARCHIVED_PARTICIPANT_PREFIX}%`);
 
   if (error) throw error;
 }
@@ -670,11 +710,6 @@ export default function App() {
   };
 
   const handleAdminParticipantSave = async (participantId: number) => {
-    if (!isAdminAuthorized) {
-      setError("请先使用管理员账号登录。");
-      return;
-    }
-
     if (!adminParticipantDraft.name.trim()) {
       setError("报名人姓名不能为空。");
       return;
@@ -695,11 +730,6 @@ export default function App() {
   };
 
   const handleDeleteParticipant = async (participant: Participant) => {
-    if (!isAdminAuthorized) {
-      setError("请先使用管理员账号登录。");
-      return;
-    }
-
     if (typeof window !== "undefined") {
       const confirmed = window.confirm(`确定删除 ${participant.name} 这条报名记录吗？`);
       if (!confirmed) return;
@@ -722,11 +752,6 @@ export default function App() {
   };
 
   const handleClearAllParticipants = async () => {
-    if (!isAdminAuthorized) {
-      setError("请先使用管理员账号登录。");
-      return;
-    }
-
     if (typeof window !== "undefined") {
       const confirmed = window.confirm("确定清空当前所有报名记录吗？这个操作通常用于切换到下一次新活动。");
       if (!confirmed) return;
@@ -805,63 +830,229 @@ export default function App() {
           </section>
 
           {!isAdminAuthorized ? (
-            <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-              <div className="rounded-3xl border border-slate-200 bg-white/90 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur md:p-6">
-                <div className="flex items-center gap-3">
-                  <LockKeyhole className="h-5 w-5 text-indigo-500" />
-                  <h2 className="text-lg font-semibold">管理员登录</h2>
-                </div>
-                <p className="mt-2 text-sm leading-7 text-slate-600">
-                  用管理员账号登录后，才能修改活动标题、时间、地点和说明。
-                </p>
-                {!adminEmail ? (
-                  <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                    还没配置管理员邮箱，所以我先把保存权限锁住了。你把要用的管理员邮箱发我，我马上替你配上并重新部署。
+            <div className="space-y-6">
+              <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+                <div className="rounded-3xl border border-slate-200 bg-white/90 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur md:p-6">
+                  <div className="flex items-center gap-3">
+                    <LockKeyhole className="h-5 w-5 text-indigo-500" />
+                    <h2 className="text-lg font-semibold">管理员登录</h2>
                   </div>
-                ) : null}
-                <div className="mt-5 space-y-4">
-                  <label className="block space-y-2">
-                    <span className="text-sm font-medium text-slate-700">管理员邮箱</span>
-                    <input
-                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100"
-                      onChange={(event) => setAdminLogin((current) => ({ ...current, email: event.target.value }))}
-                      placeholder="admin@example.com"
-                      type="email"
-                      value={adminLogin.email}
-                    />
-                  </label>
-                  <label className="block space-y-2">
-                    <span className="text-sm font-medium text-slate-700">密码</span>
-                    <input
-                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100"
-                      onChange={(event) => setAdminLogin((current) => ({ ...current, password: event.target.value }))}
-                      placeholder="输入 Supabase Auth 密码"
-                      type="password"
-                      value={adminLogin.password}
-                    />
-                  </label>
-                  <button
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-                    disabled={submitting}
-                    onClick={() => void handleAdminSignIn()}
-                    type="button"
-                  >
-                    {submitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />}
-                    登录后编辑
-                  </button>
+                  <p className="mt-2 text-sm leading-7 text-slate-600">
+                    用管理员账号登录后，才能修改活动标题、时间、地点和说明。
+                  </p>
+                  {!adminEmail ? (
+                    <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                      还没配置管理员邮箱，所以我先把保存权限锁住了。你把要用的管理员邮箱发我，我马上替你配上并重新部署。
+                    </div>
+                  ) : null}
+                  <div className="mt-5 space-y-4">
+                    <label className="block space-y-2">
+                      <span className="text-sm font-medium text-slate-700">管理员邮箱</span>
+                      <input
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100"
+                        onChange={(event) => setAdminLogin((current) => ({ ...current, email: event.target.value }))}
+                        placeholder="admin@example.com"
+                        type="email"
+                        value={adminLogin.email}
+                      />
+                    </label>
+                    <label className="block space-y-2">
+                      <span className="text-sm font-medium text-slate-700">密码</span>
+                      <input
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100"
+                        onChange={(event) => setAdminLogin((current) => ({ ...current, password: event.target.value }))}
+                        placeholder="输入 Supabase Auth 密码"
+                        type="password"
+                        value={adminLogin.password}
+                      />
+                    </label>
+                    <button
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                      disabled={submitting}
+                      onClick={() => void handleAdminSignIn()}
+                      type="button"
+                    >
+                      {submitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />}
+                      登录后编辑
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              <div className="rounded-3xl border border-indigo-100 bg-indigo-50/80 p-5 md:p-6">
-                <h2 className="text-lg font-semibold text-slate-900">这个管理模式怎么分享</h2>
-                <div className="mt-4 space-y-3 text-sm leading-7 text-slate-600">
-                  <p>公开报名页直接发：`{getPublicUrl()}`</p>
-                  <p>管理员页面自己留着：`{getAdminUrl()}`</p>
-                  <p>管理员权限走 Supabase 登录，不再依赖前端写死的密钥。</p>
-                  <p>当前必须配置 `VITE_ADMIN_EMAIL`，并用这个邮箱登录后才允许保存。</p>
+                <div className="rounded-3xl border border-indigo-100 bg-indigo-50/80 p-5 md:p-6">
+                  <h2 className="text-lg font-semibold text-slate-900">这个管理模式怎么分享</h2>
+                  <div className="mt-4 space-y-3 text-sm leading-7 text-slate-600">
+                    <p>公开报名页直接发：`{getPublicUrl()}`</p>
+                    <p>管理员页面自己留着：`{getAdminUrl()}`</p>
+                    <p>活动信息修改仍然需要管理员登录。</p>
+                    <p>报名记录管理已经开放，下面就能直接编辑、删除、清空。</p>
+                  </div>
                 </div>
+              </section>
+
+              <div className="space-y-6">
+                <section className="rounded-3xl border border-slate-200 bg-white/90 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur md:p-6">
+                  <div className="flex items-center gap-3">
+                    <Users className="h-5 w-5 text-indigo-500" />
+                    <h2 className="text-lg font-semibold">当前汇总</h2>
+                  </div>
+                  <div className="mt-5 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
+                    <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-700">
+                      <div className="text-xs">能来</div>
+                      <div className="mt-2 text-2xl font-semibold">{stats.yes.length}</div>
+                    </div>
+                    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-700">
+                      <div className="text-xs">待定</div>
+                      <div className="mt-2 text-2xl font-semibold">{stats.maybe.length}</div>
+                    </div>
+                    <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-rose-700">
+                      <div className="text-xs">来不了</div>
+                      <div className="mt-2 text-2xl font-semibold">{stats.no.length}</div>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="rounded-3xl border border-slate-200 bg-white/90 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur md:p-6">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <h2 className="text-lg font-semibold">报名明细</h2>
+                      <p className="mt-1 text-sm text-slate-500">这里可以直接改某个人的报名内容，或者在切换到新活动时一键清空旧报名。</p>
+                    </div>
+                    <button
+                      className="inline-flex items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+                      disabled={adminParticipantSaving === "all" || !participants.length}
+                      onClick={() => void handleClearAllParticipants()}
+                      type="button"
+                    >
+                      {adminParticipantSaving === "all" ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Eraser className="h-4 w-4" />}
+                      开始新活动：清空全部报名
+                    </button>
+                  </div>
+                  <div className="mt-4 space-y-3">
+                    {participants.length ? (
+                      participants.map((item) => {
+                        const meta = statusMeta[item.status];
+                        const Icon = meta.icon;
+                        const isEditing = editingParticipantId === item.id;
+                        const isBusy = adminParticipantSaving === item.id;
+
+                        return (
+                          <article className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4" key={item.id}>
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                              <div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="text-base font-medium text-slate-900">{item.name}</span>
+                                  <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium ${meta.className}`}>
+                                    <Icon className="h-3.5 w-3.5" />
+                                    {meta.shortLabel}
+                                  </span>
+                                </div>
+                                <div className="mt-2 text-xs text-slate-500">更新于 {formatRelativeTime(item.updatedAt)}</div>
+                              </div>
+
+                              <div className="flex flex-wrap gap-2">
+                                <button
+                                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:border-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+                                  disabled={isBusy}
+                                  onClick={() => handleEditParticipant(item)}
+                                  type="button"
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                  编辑
+                                </button>
+                                <button
+                                  className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+                                  disabled={isBusy}
+                                  onClick={() => void handleDeleteParticipant(item)}
+                                  type="button"
+                                >
+                                  {isBusy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                                  删除
+                                </button>
+                              </div>
+                            </div>
+
+                            {isEditing ? (
+                              <div className="mt-4 space-y-4 rounded-2xl border border-indigo-100 bg-white p-4">
+                                <div className="grid gap-3 sm:grid-cols-3">
+                                  {(["yes", "maybe", "no"] as AttendanceStatus[]).map((status) => {
+                                    const optionMeta = statusMeta[status];
+                                    const OptionIcon = optionMeta.icon;
+                                    const active = adminParticipantDraft.status === status;
+
+                                    return (
+                                      <button
+                                        className={`rounded-2xl border px-4 py-3 text-left text-sm transition ${active ? `${optionMeta.className} shadow-sm` : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"}`}
+                                        key={status}
+                                        onClick={() => setAdminParticipantDraft((current) => ({ ...current, status }))}
+                                        type="button"
+                                      >
+                                        <span className="inline-flex items-center gap-2 font-medium">
+                                          <OptionIcon className="h-4 w-4" />
+                                          {optionMeta.label}
+                                        </span>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                  <label className="block space-y-2 sm:col-span-2">
+                                    <span className="text-sm font-medium text-slate-700">名字</span>
+                                    <input className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100" onChange={(event) => setAdminParticipantDraft((current) => ({ ...current, name: event.target.value }))} value={adminParticipantDraft.name} />
+                                  </label>
+                                  <label className="block space-y-2">
+                                    <span className="text-sm font-medium text-slate-700">预计到达</span>
+                                    <input className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100" onChange={(event) => setAdminParticipantDraft((current) => ({ ...current, eta: event.target.value }))} value={adminParticipantDraft.eta} />
+                                  </label>
+                                  <label className="block space-y-2">
+                                    <span className="text-sm font-medium text-slate-700">预计离开</span>
+                                    <input className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100" onChange={(event) => setAdminParticipantDraft((current) => ({ ...current, leaveAt: event.target.value }))} value={adminParticipantDraft.leaveAt} />
+                                  </label>
+                                  <label className="block space-y-2 sm:col-span-2">
+                                    <span className="text-sm font-medium text-slate-700">困难</span>
+                                    <input className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100" onChange={(event) => setAdminParticipantDraft((current) => ({ ...current, obstacle: event.target.value }))} value={adminParticipantDraft.obstacle} />
+                                  </label>
+                                  <label className="block space-y-2 sm:col-span-2">
+                                    <span className="text-sm font-medium text-slate-700">备注</span>
+                                    <textarea className="min-h-24 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100" onChange={(event) => setAdminParticipantDraft((current) => ({ ...current, note: event.target.value }))} value={adminParticipantDraft.note} />
+                                  </label>
+                                </div>
+
+                                <div className="flex flex-wrap gap-3">
+                                  <button
+                                    className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                                    disabled={isBusy}
+                                    onClick={() => void handleAdminParticipantSave(item.id)}
+                                    type="button"
+                                  >
+                                    {isBusy ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                                    保存这条报名
+                                  </button>
+                                  <button className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-slate-300" onClick={() => handleCancelParticipantEdit()} type="button">
+                                    取消编辑
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (item.eta || item.leaveAt || item.obstacle || item.note) ? (
+                              <div className="mt-3 space-y-2 text-sm text-slate-600">
+                                {item.eta ? <p>预计到达：{item.eta}</p> : null}
+                                {item.leaveAt ? <p>预计离开：{item.leaveAt}</p> : null}
+                                {item.obstacle ? <p>困难：{item.obstacle}</p> : null}
+                                {item.note ? <p>备注：{item.note}</p> : null}
+                              </div>
+                            ) : null}
+                          </article>
+                        );
+                      })
+                    ) : (
+                      <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500">
+                        还没有人报名，先从公开页提交第一条吧。
+                      </div>
+                    )}
+                  </div>
+                </section>
               </div>
-            </section>
+            </div>
           ) : (
             <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
               <div className="rounded-3xl border border-slate-200 bg-white/90 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur md:p-6">
