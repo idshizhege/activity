@@ -2,20 +2,20 @@ import { useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import {
   AlertCircle,
+  ArrowRight,
   CalendarDays,
   CheckCircle2,
-  Clock3,
   Copy,
+  Gem,
   LoaderCircle,
   LockKeyhole,
   LogIn,
   LogOut,
-  MapPin,
   PartyPopper,
   RefreshCcw,
   ShieldCheck,
+  Sparkles,
   Users,
-  Wifi,
   XCircle,
 } from "lucide-react";
 import { adminEmail, isSupabaseConfigured, supabase } from "./lib/supabase";
@@ -374,6 +374,56 @@ export default function App() {
       blockers: participants.filter((item) => item.obstacle.trim()),
     };
   }, [participants]);
+
+  const highlightCards = [
+    {
+      title: "更像活动官网",
+      description: "不是普通报名表，而是带展示感的活动落地页，发群里也更有面子。",
+    },
+    {
+      title: "信息一屏讲清楚",
+      description: "时间、地点、安排、参加情况集中展示，大家不用来回翻聊天记录。",
+    },
+    {
+      title: "后台一改全站同步",
+      description: "以后端午、聚餐、露营、生日局，直接进管理页改标题和信息就行。",
+    },
+  ];
+
+  const timelineItems = [
+    { label: "活动日期", value: eventInfo.date || "待定" },
+    { label: "开始时间", value: eventInfo.startTime || "待定" },
+    { label: "结束时间", value: eventInfo.endTime || "待定" },
+    { label: "集合地点", value: eventInfo.location || "待定" },
+  ];
+
+  const galleryImages = [
+    {
+      title: "夜景氛围",
+      description: "大图首屏 + 玻璃质感，让活动页更像正式发布页。",
+      image:
+        "https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=1400&q=80",
+    },
+    {
+      title: "现场质感",
+      description: "用展示区突出活动亮点，报名页不再只是表格。",
+      image:
+        "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1400&q=80",
+    },
+    {
+      title: "节日气氛",
+      description: "支持后续把五一换成端午、中秋、聚餐、团建等任意活动。",
+      image:
+        "https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=1400&q=80",
+    },
+  ];
+
+  const primaryStats = [
+    { label: "确定参加", value: stats.yes.length, accent: "from-emerald-400/30 to-emerald-500/10" },
+    { label: "待定观察", value: stats.maybe.length, accent: "from-amber-400/30 to-amber-500/10" },
+    { label: "暂时缺席", value: stats.no.length, accent: "from-rose-400/30 to-rose-500/10" },
+    { label: "总报名数", value: participants.length, accent: "from-cyan-400/30 to-cyan-500/10" },
+  ];
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) return;
@@ -767,151 +817,285 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#eef4ff_50%,#f8fafc_100%)] px-4 py-6 text-slate-900 md:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl space-y-6">
-        <section className="rounded-3xl border border-slate-200 bg-white/90 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur md:p-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+    <div className="min-h-screen overflow-x-hidden bg-[#050816] text-white">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute left-[-10%] top-[-8%] h-72 w-72 rounded-full bg-fuchsia-500/20 blur-3xl" />
+        <div className="absolute right-[-8%] top-[8%] h-80 w-80 rounded-full bg-cyan-400/20 blur-3xl" />
+        <div className="absolute bottom-[12%] left-[18%] h-72 w-72 rounded-full bg-indigo-500/20 blur-3xl" />
+      </div>
+
+      <div className="relative mx-auto flex min-h-screen max-w-7xl flex-col gap-8 px-4 py-6 md:px-6 lg:px-8 lg:py-8">
+        <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 shadow-[0_30px_120px_rgba(0,0,0,0.45)] backdrop-blur-xl">
+          <div className="absolute inset-0">
+            <img
+              alt="活动氛围背景"
+              className="h-full w-full object-cover opacity-30"
+              src="https://images.unsplash.com/photo-1505236858219-8359eb29e329?auto=format&fit=crop&w=1800&q=80"
+            />
+            <div className="absolute inset-0 bg-[linear-gradient(110deg,rgba(5,8,22,0.92)_20%,rgba(5,8,22,0.72)_55%,rgba(5,8,22,0.88)_100%)]" />
+          </div>
+
+          <div className="relative grid gap-8 px-5 py-8 md:px-8 md:py-10 xl:grid-cols-[1.1fr_0.9fr] xl:items-end">
             <div className="max-w-3xl">
-              <div className="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-600">
-                <PartyPopper className="h-3.5 w-3.5" />
-                活动报名
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-1.5 text-xs font-medium tracking-[0.18em] text-cyan-100 uppercase">
+                <Sparkles className="h-3.5 w-3.5" />
+                Holiday Event Landing Page
               </div>
-              <h1 className="mt-3 text-2xl font-semibold tracking-tight md:text-4xl">{eventInfo.title}</h1>
-              <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">{eventInfo.description || "按实际情况填写是否参加、几点到、几点走和需要协调的事。"}</p>
+
+              <h1 className="mt-5 text-4xl font-semibold leading-tight tracking-tight text-white md:text-6xl xl:text-7xl">
+                {eventInfo.title}
+              </h1>
+
+              <p className="mt-5 max-w-2xl text-sm leading-7 text-slate-200 md:text-base">
+                {eventInfo.description || "按实际情况填写是否参加、几点到、几点走和需要协调的事。"}
+              </p>
+
+              <div className="mt-6 flex flex-wrap gap-3 text-sm">
+                <span className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-slate-100">
+                  活动类型：{eventInfo.category || "节日活动"}
+                </span>
+                <span className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-slate-100">
+                  {refreshing ? "数据同步中…" : `最近更新 ${formatRelativeTime(eventInfo.updatedAt)}`}
+                </span>
+              </div>
+
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                <a
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-medium text-slate-950 transition hover:bg-slate-100"
+                  href="#signup"
+                >
+                  立即报名
+                  <ArrowRight className="h-4 w-4" />
+                </a>
+                <button
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-white/15 bg-white/10 px-6 py-3 text-sm font-medium text-white transition hover:bg-white/15"
+                  onClick={() => void handleCopyShareText()}
+                  type="button"
+                >
+                  <Copy className="h-4 w-4" />
+                  {copied ? "已复制群发文案" : "复制群发文案"}
+                </button>
+                <a
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-6 py-3 text-sm font-medium text-cyan-100 transition hover:bg-cyan-400/15"
+                  href={getAdminUrl()}
+                >
+                  管理入口
+                </a>
+              </div>
             </div>
 
-            <div className="grid gap-2 text-sm text-slate-600 sm:grid-cols-2 lg:min-w-[320px]">
-              <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                <CalendarDays className="h-4 w-4 text-indigo-500" />
-                <span>{eventInfo.date || "日期待定"}</span>
+            <div className="grid gap-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                {primaryStats.map((item) => (
+                  <div
+                    className={`rounded-[1.75rem] border border-white/10 bg-gradient-to-br ${item.accent} p-5 backdrop-blur-xl`}
+                    key={item.label}
+                  >
+                    <div className="text-xs uppercase tracking-[0.2em] text-slate-300">{item.label}</div>
+                    <div className="mt-3 text-4xl font-semibold text-white">{item.value}</div>
+                  </div>
+                ))}
               </div>
-              <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                <Clock3 className="h-4 w-4 text-indigo-500" />
-                <span>{formatRange(eventInfo.startTime, eventInfo.endTime)}</span>
-              </div>
-              <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 sm:col-span-2">
-                <MapPin className="h-4 w-4 text-indigo-500" />
-                <span>{eventInfo.location || "地点待定"}</span>
-              </div>
-              <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 sm:col-span-2">
-                <Wifi className="h-4 w-4 text-indigo-500" />
-                <span>{refreshing ? "同步中…" : `最近更新 ${formatRelativeTime(eventInfo.updatedAt)}`}</span>
+
+              <div className="rounded-[1.75rem] border border-white/10 bg-slate-950/45 p-5 backdrop-blur-xl">
+                <div className="flex items-center gap-2 text-sm font-medium text-cyan-100">
+                  <Gem className="h-4 w-4" />
+                  活动信息总览
+                </div>
+                <div className="mt-4 grid gap-3 text-sm text-slate-200 sm:grid-cols-2">
+                  <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                    <div className="text-xs text-slate-400">日期</div>
+                    <div className="mt-1">{eventInfo.date || "日期待定"}</div>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                    <div className="text-xs text-slate-400">时间</div>
+                    <div className="mt-1">{formatRange(eventInfo.startTime, eventInfo.endTime)}</div>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 sm:col-span-2">
+                    <div className="text-xs text-slate-400">地点</div>
+                    <div className="mt-1">{eventInfo.location || "地点待定"}</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </section>
 
-        {error ? <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div> : null}
+        {error ? <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">{error}</div> : null}
 
         <section className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-          <div className="rounded-3xl border border-slate-200 bg-white/90 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur md:p-6">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-semibold">我的报名</h2>
-                <p className="mt-1 text-sm text-slate-500">同一台设备再次提交，会覆盖之前那条记录。</p>
+          <div className="space-y-6">
+            <section className="rounded-[2rem] border border-white/10 bg-white/5 p-5 shadow-[0_30px_120px_rgba(0,0,0,0.35)] backdrop-blur-xl md:p-6">
+              <div className="flex items-center gap-2 text-sm font-medium text-cyan-100">
+                <Sparkles className="h-4 w-4" />
+                这次活动为什么值得来
               </div>
-              <button className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-xs text-slate-600 hover:border-slate-300 hover:text-slate-800" onClick={() => void refreshActivity(true)} type="button">
-                <RefreshCcw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
-                刷新
-              </button>
-            </div>
+              <div className="mt-5 grid gap-4 md:grid-cols-3">
+                {highlightCards.map((item) => (
+                  <article className="rounded-[1.5rem] border border-white/10 bg-slate-950/40 p-5" key={item.title}>
+                    <div className="text-lg font-semibold text-white">{item.title}</div>
+                    <p className="mt-3 text-sm leading-7 text-slate-300">{item.description}</p>
+                  </article>
+                ))}
+              </div>
+            </section>
 
-            <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-              {(["yes", "maybe", "no"] as AttendanceStatus[]).map((status) => {
-                const meta = statusMeta[status];
-                const Icon = meta.icon;
-                const active = draft.status === status;
-                return (
-                  <button
-                    className={`rounded-2xl border px-4 py-3 text-left transition ${active ? meta.className : "border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:bg-slate-50"}`}
-                    key={status}
-                    onClick={() => setDraft((current) => ({ ...current, status }))}
-                    type="button"
-                  >
-                    <div className="flex items-center gap-2 text-sm font-medium">
-                      <Icon className="h-4 w-4" />
-                      {meta.label}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+            <section className="rounded-[2rem] border border-white/10 bg-white/5 p-5 shadow-[0_30px_120px_rgba(0,0,0,0.35)] backdrop-blur-xl md:p-6">
+              <div className="flex items-center gap-2 text-sm font-medium text-cyan-100">
+                <CalendarDays className="h-4 w-4" />
+                活动流程卡
+              </div>
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                {timelineItems.map((item) => (
+                  <div className="rounded-[1.5rem] border border-white/10 bg-slate-950/40 p-5" key={item.label}>
+                    <div className="text-xs uppercase tracking-[0.18em] text-slate-400">{item.label}</div>
+                    <div className="mt-3 text-lg font-semibold text-white">{item.value}</div>
+                  </div>
+                ))}
+              </div>
+            </section>
 
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <label className="block space-y-2 md:col-span-2">
-                <span className="text-sm font-medium text-slate-700">你的名字</span>
-                <input className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100" onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} placeholder="比如：阿哲" value={draft.name} />
-              </label>
-              <label className="block space-y-2">
-                <span className="text-sm font-medium text-slate-700">大概几点到</span>
-                <input className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100" onChange={(event) => setDraft((current) => ({ ...current, eta: event.target.value }))} placeholder="比如：19:10" value={draft.eta} />
-              </label>
-              <label className="block space-y-2">
-                <span className="text-sm font-medium text-slate-700">大概几点走</span>
-                <input className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100" onChange={(event) => setDraft((current) => ({ ...current, leaveAt: event.target.value }))} placeholder="比如：21:30" value={draft.leaveAt} />
-              </label>
-              <label className="block space-y-2 md:col-span-2">
-                <span className="text-sm font-medium text-slate-700">有什么困难</span>
-                <input className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100" onChange={(event) => setDraft((current) => ({ ...current, obstacle: event.target.value }))} placeholder="比如：下班晚 / 接娃冲突" value={draft.obstacle} />
-              </label>
-              <label className="block space-y-2 md:col-span-2">
-                <span className="text-sm font-medium text-slate-700">备注</span>
-                <textarea className="min-h-28 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100" onChange={(event) => setDraft((current) => ({ ...current, note: event.target.value }))} placeholder="想补充的话写这里" value={draft.note} />
-              </label>
-            </div>
-
-            <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <button className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto" disabled={submitting} onClick={() => void handleSubmit()} type="button">
-                {submitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                保存我的情况
-              </button>
-              <button className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition hover:border-slate-300 sm:w-auto" onClick={() => setDraft(mySubmission ? { name: mySubmission.name, status: mySubmission.status, eta: mySubmission.eta, leaveAt: mySubmission.leaveAt, obstacle: mySubmission.obstacle, note: mySubmission.note } : emptyDraft)} type="button">
-                恢复已保存内容
-              </button>
-            </div>
+            <section className="rounded-[2rem] border border-white/10 bg-white/5 p-5 shadow-[0_30px_120px_rgba(0,0,0,0.35)] backdrop-blur-xl md:p-6">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-xl font-semibold text-white">视觉展示区</h2>
+                  <p className="mt-2 text-sm text-slate-300">我先给你做成偏高端发布页的感觉，后面还可以继续强化。</p>
+                </div>
+              </div>
+              <div className="mt-5 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+                <article className="group relative overflow-hidden rounded-[1.75rem] border border-white/10">
+                  <img alt={galleryImages[0].title} className="h-full min-h-[260px] w-full object-cover transition duration-500 group-hover:scale-105" src={galleryImages[0].image} />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/35 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 p-5">
+                    <div className="text-lg font-semibold text-white">{galleryImages[0].title}</div>
+                    <p className="mt-2 text-sm text-slate-200">{galleryImages[0].description}</p>
+                  </div>
+                </article>
+                <div className="grid gap-4">
+                  {galleryImages.slice(1).map((item) => (
+                    <article className="group relative overflow-hidden rounded-[1.75rem] border border-white/10" key={item.title}>
+                      <img alt={item.title} className="h-48 w-full object-cover transition duration-500 group-hover:scale-105" src={item.image} />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-transparent" />
+                      <div className="absolute inset-x-0 bottom-0 p-5">
+                        <div className="text-base font-semibold text-white">{item.title}</div>
+                        <p className="mt-1 text-sm text-slate-200">{item.description}</p>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </div>
+            </section>
           </div>
 
           <div className="space-y-6">
-            <section className="rounded-3xl border border-slate-200 bg-white/90 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur md:p-6">
+            <section id="signup" className="rounded-[2rem] border border-white/10 bg-white/5 p-5 shadow-[0_30px_120px_rgba(0,0,0,0.35)] backdrop-blur-xl md:p-6">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-semibold">活动总览</h2>
-                  <p className="mt-1 text-sm text-slate-500">适合直接发群里，大家能实时看到整体情况。</p>
+                  <h2 className="text-xl font-semibold text-white">我的报名</h2>
+                  <p className="mt-2 text-sm text-slate-300">同一台设备再次提交，会覆盖之前那条记录。</p>
                 </div>
-                <button className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-xs text-slate-600 hover:border-slate-300 hover:text-slate-800" onClick={() => void handleCopyShareText()} type="button">
+                <button className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-200 transition hover:bg-white/10" onClick={() => void refreshActivity(true)} type="button">
+                  <RefreshCcw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
+                  刷新
+                </button>
+              </div>
+
+              <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                {(["yes", "maybe", "no"] as AttendanceStatus[]).map((status) => {
+                  const meta = statusMeta[status];
+                  const Icon = meta.icon;
+                  const active = draft.status === status;
+                  return (
+                    <button
+                      className={`rounded-[1.5rem] border px-4 py-4 text-left transition ${active ? `${meta.className} shadow-lg shadow-black/10` : "border-white/10 bg-slate-950/40 text-slate-300 hover:border-white/20 hover:bg-white/10"}`}
+                      key={status}
+                      onClick={() => setDraft((current) => ({ ...current, status }))}
+                      type="button"
+                    >
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <Icon className="h-4 w-4" />
+                        {meta.label}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                <label className="block space-y-2 md:col-span-2">
+                  <span className="text-sm font-medium text-slate-200">你的名字</span>
+                  <input className="w-full rounded-[1.25rem] border border-white/10 bg-slate-950/50 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-400/40 focus:ring-4 focus:ring-cyan-400/10" onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} placeholder="比如：阿哲" value={draft.name} />
+                </label>
+                <label className="block space-y-2">
+                  <span className="text-sm font-medium text-slate-200">大概几点到</span>
+                  <input className="w-full rounded-[1.25rem] border border-white/10 bg-slate-950/50 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-400/40 focus:ring-4 focus:ring-cyan-400/10" onChange={(event) => setDraft((current) => ({ ...current, eta: event.target.value }))} placeholder="比如：19:10" value={draft.eta} />
+                </label>
+                <label className="block space-y-2">
+                  <span className="text-sm font-medium text-slate-200">大概几点走</span>
+                  <input className="w-full rounded-[1.25rem] border border-white/10 bg-slate-950/50 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-400/40 focus:ring-4 focus:ring-cyan-400/10" onChange={(event) => setDraft((current) => ({ ...current, leaveAt: event.target.value }))} placeholder="比如：21:30" value={draft.leaveAt} />
+                </label>
+                <label className="block space-y-2 md:col-span-2">
+                  <span className="text-sm font-medium text-slate-200">有什么困难</span>
+                  <input className="w-full rounded-[1.25rem] border border-white/10 bg-slate-950/50 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-400/40 focus:ring-4 focus:ring-cyan-400/10" onChange={(event) => setDraft((current) => ({ ...current, obstacle: event.target.value }))} placeholder="比如：下班晚 / 接娃冲突" value={draft.obstacle} />
+                </label>
+                <label className="block space-y-2 md:col-span-2">
+                  <span className="text-sm font-medium text-slate-200">备注</span>
+                  <textarea className="min-h-28 w-full rounded-[1.25rem] border border-white/10 bg-slate-950/50 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-400/40 focus:ring-4 focus:ring-cyan-400/10" onChange={(event) => setDraft((current) => ({ ...current, note: event.target.value }))} placeholder="想补充的话写这里" value={draft.note} />
+                </label>
+              </div>
+
+              <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                <button className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-medium text-slate-950 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto" disabled={submitting} onClick={() => void handleSubmit()} type="button">
+                  {submitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                  保存我的情况
+                </button>
+                <button className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 py-3 text-sm font-medium text-white transition hover:bg-white/10 sm:w-auto" onClick={() => setDraft(mySubmission ? { name: mySubmission.name, status: mySubmission.status, eta: mySubmission.eta, leaveAt: mySubmission.leaveAt, obstacle: mySubmission.obstacle, note: mySubmission.note } : emptyDraft)} type="button">
+                  恢复已保存内容
+                </button>
+              </div>
+            </section>
+
+            <section className="rounded-[2rem] border border-white/10 bg-white/5 p-5 shadow-[0_30px_120px_rgba(0,0,0,0.35)] backdrop-blur-xl md:p-6">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-xl font-semibold text-white">活动总览</h2>
+                  <p className="mt-2 text-sm text-slate-300">适合直接发群里，大家能实时看到整体情况。</p>
+                </div>
+                <button className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-200 transition hover:bg-white/10" onClick={() => void handleCopyShareText()} type="button">
                   <Copy className="h-3.5 w-3.5" />
                   {copied ? "已复制" : "复制群发文案"}
                 </button>
               </div>
 
               <div className="mt-5 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
-                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-700">
-                  <div className="text-xs">能来</div>
-                  <div className="mt-2 text-2xl font-semibold">{stats.yes.length}</div>
+                <div className="rounded-[1.5rem] border border-emerald-400/20 bg-emerald-400/10 p-4 text-emerald-100">
+                  <div className="text-xs uppercase tracking-[0.2em] text-emerald-200/80">能来</div>
+                  <div className="mt-2 text-3xl font-semibold">{stats.yes.length}</div>
                 </div>
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-700">
-                  <div className="text-xs">待定</div>
-                  <div className="mt-2 text-2xl font-semibold">{stats.maybe.length}</div>
+                <div className="rounded-[1.5rem] border border-amber-400/20 bg-amber-400/10 p-4 text-amber-100">
+                  <div className="text-xs uppercase tracking-[0.2em] text-amber-200/80">待定</div>
+                  <div className="mt-2 text-3xl font-semibold">{stats.maybe.length}</div>
                 </div>
-                <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-rose-700">
-                  <div className="text-xs">来不了</div>
-                  <div className="mt-2 text-2xl font-semibold">{stats.no.length}</div>
+                <div className="rounded-[1.5rem] border border-rose-400/20 bg-rose-400/10 p-4 text-rose-100">
+                  <div className="text-xs uppercase tracking-[0.2em] text-rose-200/80">来不了</div>
+                  <div className="mt-2 text-3xl font-semibold">{stats.no.length}</div>
                 </div>
               </div>
 
-              <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-500">
-                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">活动：{eventInfo.category || "待定"}</span>
-                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">总报名：{participants.length}</span>
-                <a className="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-indigo-600 hover:bg-indigo-100" href={getAdminUrl()}>
+              <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-300">
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">活动：{eventInfo.category || "待定"}</span>
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">总报名：{participants.length}</span>
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">待协调：{stats.blockers.length}</span>
+                <a className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-cyan-100 transition hover:bg-cyan-400/15" href={getAdminUrl()}>
                   管理编辑入口
                 </a>
               </div>
             </section>
 
-            <section className="rounded-3xl border border-slate-200 bg-white/90 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur md:p-6">
+            <section className="rounded-[2rem] border border-white/10 bg-white/5 p-5 shadow-[0_30px_120px_rgba(0,0,0,0.35)] backdrop-blur-xl md:p-6">
               <div className="flex items-center gap-3">
-                <Users className="h-5 w-5 text-indigo-500" />
-                <h2 className="text-lg font-semibold">报名明细</h2>
+                <Users className="h-5 w-5 text-cyan-200" />
+                <h2 className="text-xl font-semibold text-white">报名明细</h2>
               </div>
               <div className="mt-4 space-y-3">
                 {participants.length ? (
@@ -920,24 +1104,24 @@ export default function App() {
                     const Icon = meta.icon;
                     const isMine = item.viewerToken === viewerToken;
                     return (
-                      <article className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4" key={item.id}>
+                      <article className="rounded-[1.5rem] border border-white/10 bg-slate-950/40 p-4" key={item.id}>
                         <div className="flex items-start justify-between gap-3">
                           <div>
                             <div className="flex flex-wrap items-center gap-2">
-                              <span className="text-base font-medium text-slate-900">{item.name}</span>
+                              <span className="text-base font-medium text-white">{item.name}</span>
                               <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium ${meta.className}`}>
                                 <Icon className="h-3.5 w-3.5" />
                                 {meta.shortLabel}
                               </span>
-                              {isMine ? <span className="rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-600">我提交的</span> : null}
+                              {isMine ? <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-2.5 py-1 text-xs font-medium text-cyan-100">我提交的</span> : null}
                             </div>
-                            <div className="mt-2 text-xs text-slate-500">更新于 {formatRelativeTime(item.updatedAt)}</div>
+                            <div className="mt-2 text-xs text-slate-400">更新于 {formatRelativeTime(item.updatedAt)}</div>
                           </div>
                           <div className={`h-3 w-3 shrink-0 rounded-full ${meta.softClassName}`} />
                         </div>
 
                         {(item.eta || item.leaveAt || item.obstacle || item.note) ? (
-                          <div className="mt-3 space-y-2 text-sm text-slate-600">
+                          <div className="mt-3 space-y-2 text-sm text-slate-300">
                             {item.eta ? <p>预计到达：{item.eta}</p> : null}
                             {item.leaveAt ? <p>预计离开：{item.leaveAt}</p> : null}
                             {item.obstacle ? <p>困难：{item.obstacle}</p> : null}
@@ -948,7 +1132,7 @@ export default function App() {
                     );
                   })
                 ) : (
-                  <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500">
+                  <div className="rounded-[1.5rem] border border-dashed border-white/15 px-4 py-8 text-center text-sm text-slate-400">
                     还没人填，先提交第一条试试。
                   </div>
                 )}
