@@ -462,6 +462,8 @@ export default function App() {
   const [submitting, setSubmitting] = useState(false);
   const [adminSaving, setAdminSaving] = useState(false);
   const [editingParticipantId, setEditingParticipantId] = useState<number | null>(null);
+  const [pendingDeleteParticipantId, setPendingDeleteParticipantId] = useState<number | null>(null);
+  const [pendingClearAllParticipants, setPendingClearAllParticipants] = useState(false);
   const [adminParticipantDraft, setAdminParticipantDraft] = useState<DraftParticipant>(emptyDraft);
   const [adminParticipantSaving, setAdminParticipantSaving] = useState<number | "all" | null>(null);
   const [copied, setCopied] = useState(false);
@@ -699,6 +701,7 @@ export default function App() {
   };
 
   const handleEditParticipant = (participant: Participant) => {
+    setPendingDeleteParticipantId(null);
     setEditingParticipantId(participant.id);
     setAdminParticipantDraft(participantToDraft(participant));
     setError("");
@@ -720,6 +723,7 @@ export default function App() {
       await updateParticipantRecord(participantId, adminParticipantDraft);
       await refreshActivity(true);
       setEditingParticipantId(null);
+      setPendingDeleteParticipantId(null);
       setAdminParticipantDraft(emptyDraft);
       setError("");
     } catch (saveError) {
@@ -730,15 +734,11 @@ export default function App() {
   };
 
   const handleDeleteParticipant = async (participant: Participant) => {
-    if (typeof window !== "undefined") {
-      const confirmed = window.confirm(`确定删除 ${participant.name} 这条报名记录吗？`);
-      if (!confirmed) return;
-    }
-
     setAdminParticipantSaving(participant.id);
     try {
       await deleteParticipantRecord(participant.id);
       await refreshActivity(true);
+      setPendingDeleteParticipantId(null);
       if (editingParticipantId === participant.id) {
         setEditingParticipantId(null);
         setAdminParticipantDraft(emptyDraft);
@@ -752,15 +752,12 @@ export default function App() {
   };
 
   const handleClearAllParticipants = async () => {
-    if (typeof window !== "undefined") {
-      const confirmed = window.confirm("确定清空当前所有报名记录吗？这个操作通常用于切换到下一次新活动。");
-      if (!confirmed) return;
-    }
-
     setAdminParticipantSaving("all");
     try {
       await clearAllParticipants();
       await refreshActivity(true);
+      setPendingDeleteParticipantId(null);
+      setPendingClearAllParticipants(false);
       setEditingParticipantId(null);
       setAdminParticipantDraft(emptyDraft);
       setDraft(emptyDraft);
@@ -917,15 +914,40 @@ export default function App() {
                       <h2 className="text-lg font-semibold">报名明细</h2>
                       <p className="mt-1 text-sm text-slate-500">这里可以直接改某个人的报名内容，或者在切换到新活动时一键清空旧报名。</p>
                     </div>
-                    <button
-                      className="inline-flex items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
-                      disabled={adminParticipantSaving === "all" || !participants.length}
-                      onClick={() => void handleClearAllParticipants()}
-                      type="button"
-                    >
-                      {adminParticipantSaving === "all" ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Eraser className="h-4 w-4" />}
-                      开始新活动：清空全部报名
-                    </button>
+                    {pendingClearAllParticipants ? (
+                      <div className="flex flex-col gap-2 sm:flex-row">
+                        <button
+                          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-rose-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+                          disabled={adminParticipantSaving === "all"}
+                          onClick={() => void handleClearAllParticipants()}
+                          type="button"
+                        >
+                          {adminParticipantSaving === "all" ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                          确认清空全部报名
+                        </button>
+                        <button
+                          className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-slate-300"
+                          disabled={adminParticipantSaving === "all"}
+                          onClick={() => setPendingClearAllParticipants(false)}
+                          type="button"
+                        >
+                          先不清空
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+                        disabled={adminParticipantSaving === "all" || !participants.length}
+                        onClick={() => {
+                          setPendingDeleteParticipantId(null);
+                          setPendingClearAllParticipants(true);
+                        }}
+                        type="button"
+                      >
+                        <Eraser className="h-4 w-4" />
+                        开始新活动：清空全部报名
+                      </button>
+                    )}
                   </div>
                   <div className="mt-4 space-y-3">
                     {participants.length ? (
@@ -959,15 +981,40 @@ export default function App() {
                                   <Pencil className="h-3.5 w-3.5" />
                                   编辑
                                 </button>
-                                <button
-                                  className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
-                                  disabled={isBusy}
-                                  onClick={() => void handleDeleteParticipant(item)}
-                                  type="button"
-                                >
-                                  {isBusy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                                  删除
-                                </button>
+                                {pendingDeleteParticipantId === item.id ? (
+                                  <>
+                                    <button
+                                      className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-3 py-2 text-xs font-medium text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                      disabled={isBusy}
+                                      onClick={() => void handleDeleteParticipant(item)}
+                                      type="button"
+                                    >
+                                      {isBusy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                                      确认删除
+                                    </button>
+                                    <button
+                                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:border-slate-300"
+                                      disabled={isBusy}
+                                      onClick={() => setPendingDeleteParticipantId(null)}
+                                      type="button"
+                                    >
+                                      取消
+                                    </button>
+                                  </>
+                                ) : (
+                                  <button
+                                    className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+                                    disabled={isBusy}
+                                    onClick={() => {
+                                      setPendingClearAllParticipants(false);
+                                      setPendingDeleteParticipantId(item.id);
+                                    }}
+                                    type="button"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                    删除
+                                  </button>
+                                )}
                               </div>
                             </div>
 
@@ -1129,15 +1176,40 @@ export default function App() {
                       <h2 className="text-lg font-semibold">报名明细</h2>
                       <p className="mt-1 text-sm text-slate-500">这里可以直接改某个人的报名内容，或者在切换到新活动时一键清空旧报名。</p>
                     </div>
-                    <button
-                      className="inline-flex items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
-                      disabled={adminParticipantSaving === "all" || !participants.length}
-                      onClick={() => void handleClearAllParticipants()}
-                      type="button"
-                    >
-                      {adminParticipantSaving === "all" ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Eraser className="h-4 w-4" />}
-                      开始新活动：清空全部报名
-                    </button>
+                    {pendingClearAllParticipants ? (
+                      <div className="flex flex-col gap-2 sm:flex-row">
+                        <button
+                          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-rose-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+                          disabled={adminParticipantSaving === "all"}
+                          onClick={() => void handleClearAllParticipants()}
+                          type="button"
+                        >
+                          {adminParticipantSaving === "all" ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                          确认清空全部报名
+                        </button>
+                        <button
+                          className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-slate-300"
+                          disabled={adminParticipantSaving === "all"}
+                          onClick={() => setPendingClearAllParticipants(false)}
+                          type="button"
+                        >
+                          先不清空
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+                        disabled={adminParticipantSaving === "all" || !participants.length}
+                        onClick={() => {
+                          setPendingDeleteParticipantId(null);
+                          setPendingClearAllParticipants(true);
+                        }}
+                        type="button"
+                      >
+                        <Eraser className="h-4 w-4" />
+                        开始新活动：清空全部报名
+                      </button>
+                    )}
                   </div>
                   <div className="mt-4 space-y-3">
                     {participants.length ? (
@@ -1169,15 +1241,40 @@ export default function App() {
                                   <Pencil className="h-3.5 w-3.5" />
                                   编辑
                                 </button>
-                                <button
-                                  className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
-                                  disabled={isBusy}
-                                  onClick={() => void handleDeleteParticipant(item)}
-                                  type="button"
-                                >
-                                  {isBusy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                                  删除
-                                </button>
+                                {pendingDeleteParticipantId === item.id ? (
+                                  <>
+                                    <button
+                                      className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-3 py-2 text-xs font-medium text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                      disabled={isBusy}
+                                      onClick={() => void handleDeleteParticipant(item)}
+                                      type="button"
+                                    >
+                                      {isBusy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                                      确认删除
+                                    </button>
+                                    <button
+                                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:border-slate-300"
+                                      disabled={isBusy}
+                                      onClick={() => setPendingDeleteParticipantId(null)}
+                                      type="button"
+                                    >
+                                      取消
+                                    </button>
+                                  </>
+                                ) : (
+                                  <button
+                                    className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+                                    disabled={isBusy}
+                                    onClick={() => {
+                                      setPendingClearAllParticipants(false);
+                                      setPendingDeleteParticipantId(item.id);
+                                    }}
+                                    type="button"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                    删除
+                                  </button>
+                                )}
                               </div>
                             </div>
                             {isEditing ? (
