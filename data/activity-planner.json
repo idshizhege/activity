@@ -1,0 +1,46 @@
+{
+  "eventInfo": {
+    "title": "五一回来一起聚一聚",
+    "category": "吃饭 / 小聚 / 续摊自由",
+    "date": "2025-05-05",
+    "startTime": "18:30",
+    "endTime": "22:30",
+    "location": "市中心商圈 · 地点待最终确认",
+    "description": "大家按自己的情况填写就行，能不能来、几点到、什么时候走、卡在哪一步都写清楚。右侧会自动汇总整体情况，方便群里快速决策。"
+  },
+  "participants": [
+    {
+      "id": "seed-a-zhe",
+      "token": "seed-token-a-zhe",
+      "name": "阿哲",
+      "status": "yes",
+      "eta": "18:40",
+      "leaveAt": "22:30",
+      "obstacle": "",
+      "note": "下班直接过去。",
+      "updatedAt": "2025-05-01T10:00:00.000Z"
+    },
+    {
+      "id": "seed-xiao-bei",
+      "token": "seed-token-xiao-bei",
+      "name": "小北",
+      "status": "maybe",
+      "eta": "19:20",
+      "leaveAt": "21:40",
+      "obstacle": "家里有点事，处理完就来。",
+      "note": "如果能出发会提前在群里说。",
+      "updatedAt": "2025-05-01T09:30:00.000Z"
+    },
+    {
+      "id": "seed-cola",
+      "token": "seed-token-cola",
+      "name": "可乐",
+      "status": "no",
+      "eta": "",
+      "leaveAt": "",
+      "obstacle": "当天还在外地。",
+      "note": "这次不行，下次约。",
+      "updatedAt": "2025-05-01T09:00:00.000Z"
+    }
+  ]
+}
