@@ -112,21 +112,21 @@ const statusMeta: Record<
   }
 > = {
   yes: {
-    label: "确定能参加",
+    label: "确定参加",
     shortLabel: "能来",
     className: "border-emerald-200 bg-emerald-50 text-emerald-700",
     softClassName: "bg-emerald-500",
     icon: CheckCircle2,
   },
   maybe: {
-    label: "有条件参加",
+    label: "待定",
     shortLabel: "待定",
     className: "border-amber-200 bg-amber-50 text-amber-700",
     softClassName: "bg-amber-500",
     icon: AlertCircle,
   },
   no: {
-    label: "这次来不了",
+    label: "来不了",
     shortLabel: "缺席",
     className: "border-rose-200 bg-rose-50 text-rose-700",
     softClassName: "bg-rose-500",
@@ -359,8 +359,7 @@ export default function App() {
 
   const isAdminAuthorized = useMemo(() => {
     const email = session?.user?.email?.toLowerCase() || "";
-    if (!email) return false;
-    if (!adminEmail) return true;
+    if (!email || !adminEmail) return false;
     return email === adminEmail.toLowerCase();
   }, [session]);
 
@@ -557,7 +556,7 @@ export default function App() {
               <div>
                 <div className="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-600">
                   <ShieldCheck className="h-3.5 w-3.5" />
-                  管理编辑页（GitHub Pages 版）
+                  管理编辑页
                 </div>
                 <h1 className="mt-3 text-2xl font-semibold tracking-tight md:text-3xl">活动信息管理</h1>
                 <p className="mt-2 text-sm leading-7 text-slate-600">
@@ -598,8 +597,13 @@ export default function App() {
                   <h2 className="text-lg font-semibold">管理员登录</h2>
                 </div>
                 <p className="mt-2 text-sm leading-7 text-slate-600">
-                  使用你在 Supabase 里创建的管理员账号登录后，才能修改活动标题、时间、地点和说明。
+                  用管理员账号登录后，才能修改活动标题、时间、地点和说明。
                 </p>
+                {!adminEmail ? (
+                  <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    还没配置管理员邮箱，所以我先把保存权限锁住了。你把要用的管理员邮箱发我，我马上替你配上并重新部署。
+                  </div>
+                ) : null}
                 <div className="mt-5 space-y-4">
                   <label className="block space-y-2">
                     <span className="text-sm font-medium text-slate-700">管理员邮箱</span>
@@ -638,8 +642,8 @@ export default function App() {
                 <div className="mt-4 space-y-3 text-sm leading-7 text-slate-600">
                   <p>公开报名页直接发：`{getPublicUrl()}`</p>
                   <p>管理员页面自己留着：`{getAdminUrl()}`</p>
-                  <p>管理员权限不再依赖前端密钥，而是改成 Supabase 登录账号。</p>
-                  <p>如果你配置了 `VITE_ADMIN_EMAIL`，只有那个邮箱登录后才允许保存。</p>
+                  <p>管理员权限走 Supabase 登录，不再依赖前端写死的密钥。</p>
+                  <p>当前必须配置 `VITE_ADMIN_EMAIL`，并用这个邮箱登录后才允许保存。</p>
                 </div>
               </div>
             </section>
@@ -650,7 +654,7 @@ export default function App() {
                   <PartyPopper className="h-5 w-5 text-indigo-500" />
                   <h2 className="text-lg font-semibold">编辑活动信息</h2>
                 </div>
-                <div className="mt-5 grid gap-4 md:grid-cols-2">
+                <div className="mt-5 grid gap-4 sm:grid-cols-2">
                   <label className="block space-y-2 md:col-span-2">
                     <span className="text-sm font-medium text-slate-700">活动标题</span>
                     <input className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100" value={adminDraft.title} onChange={(event) => setAdminDraft((current) => ({ ...current, title: event.target.value }))} />
@@ -697,7 +701,7 @@ export default function App() {
                     <Users className="h-5 w-5 text-indigo-500" />
                     <h2 className="text-lg font-semibold">当前汇总</h2>
                   </div>
-                  <div className="mt-5 grid grid-cols-3 gap-3 text-sm">
+                  <div className="mt-5 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
                     <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-700">
                       <div className="text-xs">能来</div>
                       <div className="mt-2 text-2xl font-semibold">{stats.yes.length}</div>
@@ -770,10 +774,10 @@ export default function App() {
             <div className="max-w-3xl">
               <div className="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-600">
                 <PartyPopper className="h-3.5 w-3.5" />
-                大家自己填，右边自动汇总
+                活动报名
               </div>
               <h1 className="mt-3 text-2xl font-semibold tracking-tight md:text-4xl">{eventInfo.title}</h1>
-              <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">{eventInfo.description || "按自己的情况填写能否参加、几点到、有什么困难。"}</p>
+              <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">{eventInfo.description || "按实际情况填写是否参加、几点到、几点走和需要协调的事。"}</p>
             </div>
 
             <div className="grid gap-2 text-sm text-slate-600 sm:grid-cols-2 lg:min-w-[320px]">
@@ -804,7 +808,7 @@ export default function App() {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h2 className="text-lg font-semibold">我的报名</h2>
-                <p className="mt-1 text-sm text-slate-500">同一台设备再次提交，会覆盖你之前的记录。</p>
+                <p className="mt-1 text-sm text-slate-500">同一台设备再次提交，会覆盖之前那条记录。</p>
               </div>
               <button className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-xs text-slate-600 hover:border-slate-300 hover:text-slate-800" onClick={() => void refreshActivity(true)} type="button">
                 <RefreshCcw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
@@ -812,7 +816,7 @@ export default function App() {
               </button>
             </div>
 
-            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
               {(["yes", "maybe", "no"] as AttendanceStatus[]).map((status) => {
                 const meta = statusMeta[status];
                 const Icon = meta.icon;
@@ -833,7 +837,7 @@ export default function App() {
               })}
             </div>
 
-            <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <label className="block space-y-2 md:col-span-2">
                 <span className="text-sm font-medium text-slate-700">你的名字</span>
                 <input className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100" onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} placeholder="比如：阿哲" value={draft.name} />
@@ -848,7 +852,7 @@ export default function App() {
               </label>
               <label className="block space-y-2 md:col-span-2">
                 <span className="text-sm font-medium text-slate-700">有什么困难</span>
-                <input className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100" onChange={(event) => setDraft((current) => ({ ...current, obstacle: event.target.value }))} placeholder="比如：下班晚一点 / 还没确定孩子谁带" value={draft.obstacle} />
+                <input className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100" onChange={(event) => setDraft((current) => ({ ...current, obstacle: event.target.value }))} placeholder="比如：下班晚 / 接娃冲突" value={draft.obstacle} />
               </label>
               <label className="block space-y-2 md:col-span-2">
                 <span className="text-sm font-medium text-slate-700">备注</span>
@@ -856,12 +860,12 @@ export default function App() {
               </label>
             </div>
 
-            <div className="mt-5 flex flex-wrap gap-3">
-              <button className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60" disabled={submitting} onClick={() => void handleSubmit()} type="button">
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <button className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto" disabled={submitting} onClick={() => void handleSubmit()} type="button">
                 {submitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                 保存我的情况
               </button>
-              <button className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition hover:border-slate-300" onClick={() => setDraft(mySubmission ? { name: mySubmission.name, status: mySubmission.status, eta: mySubmission.eta, leaveAt: mySubmission.leaveAt, obstacle: mySubmission.obstacle, note: mySubmission.note } : emptyDraft)} type="button">
+              <button className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition hover:border-slate-300 sm:w-auto" onClick={() => setDraft(mySubmission ? { name: mySubmission.name, status: mySubmission.status, eta: mySubmission.eta, leaveAt: mySubmission.leaveAt, obstacle: mySubmission.obstacle, note: mySubmission.note } : emptyDraft)} type="button">
                 恢复已保存内容
               </button>
             </div>
@@ -880,7 +884,7 @@ export default function App() {
                 </button>
               </div>
 
-              <div className="mt-5 grid grid-cols-3 gap-3 text-sm">
+              <div className="mt-5 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
                 <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-700">
                   <div className="text-xs">能来</div>
                   <div className="mt-2 text-2xl font-semibold">{stats.yes.length}</div>

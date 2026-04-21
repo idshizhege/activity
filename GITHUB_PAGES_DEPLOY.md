@@ -5,7 +5,7 @@
 1. 打开 Supabase，新建一个项目。
 2. 进入 SQL Editor，执行 `web/supabase-schema.sql`。
 3. 进入 Authentication，创建一个管理员账号（邮箱 + 密码）。
-4. 记下以下信息：
+4. 这个管理员邮箱稍后要同时写进 `VITE_ADMIN_EMAIL`，否则管理页不会允许保存。
    - Project URL
    - anon public key
    - 管理员邮箱
